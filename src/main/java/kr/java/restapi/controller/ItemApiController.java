@@ -2,6 +2,7 @@ package kr.java.restapi.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -14,14 +15,12 @@ import kr.java.restapi.model.dto.ItemResponse;
 import kr.java.restapi.model.dto.ItemUpdateRequest;
 import kr.java.restapi.service.ItemService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-// #(1)
 /**
  * 상품 REST API 컨트롤러
  *
@@ -35,36 +34,16 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/items")
 @RequiredArgsConstructor
-// #(2)-2
-//@CrossOrigin(origins = "*")
-// #(2)-3
-//@CrossOrigin(
-//        origins = {
-//        "http://127.0.0.1:5500",
-//        "http://localhost:5500"
-//        },
-//        methods = {
-//                RequestMethod.GET,
-//                RequestMethod.POST,
-//                RequestMethod.PUT,
-//                RequestMethod.DELETE,
-//        },
-//        allowedHeaders = "*",
-//        maxAge = 3600
-//)
-// #(3)-3-1
 @Tag(name = "Item", description = "상품 관리 API")
 public class ItemApiController {
 
     private final ItemService itemService;
 
     // CREATE: POST /api/items → 201 Created
-    // #(3)-3-2
     @Operation(
             summary = "상품 생성",
             description = "새로운 상품을 등록합니다. 상품명과 가격은 필수입니다."
     )
-    // #(3)-3-3
     @ApiResponses({
         @ApiResponse(
             responseCode = "201",
@@ -93,11 +72,10 @@ public class ItemApiController {
     }
 
     // READ: GET /api/items/{id} → 200 OK
-    // #(3)-3-4
     @Operation(summary = "상품 단건 조회")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "조회 성공"),
-            @ApiResponse(responseCode = "404", description = "상품 없음")
+            @ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = ItemResponse.class))),
+            @ApiResponse(responseCode = "404", description = "상품 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping("/{id}")
     public ResponseEntity<ItemResponse> findById(
@@ -108,6 +86,8 @@ public class ItemApiController {
     }
 
     // READ: GET /api/items → 200 OK
+    @Operation(summary = "상품 목록 조회", description = "전체 상품 목록을 조회합니다.")
+    @ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = ItemResponse.class))))
     @GetMapping
     public ResponseEntity<List<ItemResponse>> findAll() {
         List<ItemResponse> responses = itemService.findAll();
@@ -115,8 +95,15 @@ public class ItemApiController {
     }
 
     // UPDATE: PUT /api/items/{id} → 200 OK
+    @Operation(summary = "상품 수정", description = "지정된 ID의 상품 정보를 수정합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "수정 성공", content = @Content(schema = @Schema(implementation = ItemResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 (유효성 검증 실패)", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "상품 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @PutMapping("/{id}")
     public ResponseEntity<ItemResponse> update(
+            @Parameter(description = "상품 ID", example = "1", required = true)
             @PathVariable Long id,
             @Valid @RequestBody ItemUpdateRequest request) {
 
@@ -125,8 +112,15 @@ public class ItemApiController {
     }
 
     // DELETE: DELETE /api/items/{id} → 204 No Content
+    @Operation(summary = "상품 삭제", description = "지정된 ID의 상품을 삭제합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "삭제 성공"),
+            @ApiResponse(responseCode = "404", description = "상품 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(
+            @Parameter(description = "상품 ID", example = "1", required = true)
+            @PathVariable Long id) {
         itemService.delete(id);
         return ResponseEntity.noContent().build();
     }
